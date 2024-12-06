@@ -83,7 +83,8 @@ def num_parameters(degree):
 
 def calculate_model_and_jacobian(degree, feature_vectors, coefficients):
 
-    # This call calculates the estimated target vector f0 using the initial coefficients at the linearization point.
+    # Using the function from task 2, calculates the estimated target vector f0 using the initial coefficients at the
+    # linearization point.
     f0 = polynomial_model(degree, feature_vectors, coefficients)
 
     num_samples = feature_vectors.shape[0]
@@ -94,12 +95,12 @@ def calculate_model_and_jacobian(degree, feature_vectors, coefficients):
 
 
     for i in range(num_params):
-        coef = coefficients.copy()
-        coef[i] += epsilon
-        # This call calculates the model function value fi with slightly modified coefficients to compute the partial
-        # derivatives for the Jacobian. The partial derivative is determined to be the difference between the model
-        # function value fi and the model function value f0 divided by epsilon.
-        fi = polynomial_model(degree, feature_vectors, coef)
+        coefficients_i = coefficients.copy()
+        coefficients_i[i] += epsilon
+        # Using the function from task 2, calculates the model function value fi with slightly modified coefficients to
+        # compute the partial derivatives for the Jacobian. The partial derivative is determined to be the difference
+        # between the model function value fi and the model function value f0 divided by epsilon.
+        fi = polynomial_model(degree, feature_vectors, coefficients_i)
         Jacobian[:, i] = (fi - f0) / epsilon
 
     return f0, Jacobian
@@ -150,7 +151,8 @@ def fit_polynomial_model(degree, training_features, training_targets, max_iterat
         # tolerance value. For the tolerance value a small value of 1e-6 is used. This is arbitrary and can be adjusted
         # as needed. It could be tested as a parameter itself to determine the optimal value.
         if np.linalg.norm(optimal_update) < tolerance:
-            # print(f'Converged in {iteration + 1} iterations.') # Uncomment to print the number of iterations to convergence
+            # # Uncomment to print the number of iterations to convergence
+            # print(f'Converged in {iteration + 1} iterations.')
             iterations_to_convergence = iteration + 1
             break
 
@@ -166,7 +168,9 @@ def task6(labels, targets):
     heating_targets = targets.iloc[:, 0].values
     cooling_targets = targets.iloc[:, 1].values
 
-    optimal_heating_degree, optimal_cooling_degree = evaluate_polynomial_degrees(features, heating_targets, cooling_targets)
+    optimal_heating_degree, optimal_cooling_degree = evaluate_polynomial_degrees(
+        features, heating_targets, cooling_targets
+    )
     return optimal_heating_degree, optimal_cooling_degree
 
 
@@ -219,13 +223,12 @@ def evaluate_polynomial_degrees(features, heating_targets, cooling_targets, max_
 # Task 7:  Evaluation and Visualisation of Results
 ########################################################################################################################
 
-def task7(df, optimal_heating_degree, optimal_cooling_degree):
+def task7(labels, targets, optimal_heating_degree, optimal_cooling_degree):
     OutputFormat.print_header('h1', 'Task 7:  Evaluation and Visualisation of Results')
 
-    estimate_and_plot(df, optimal_heating_degree, optimal_cooling_degree)
+    estimate_and_plot(labels, targets, optimal_heating_degree, optimal_cooling_degree)
 
-def estimate_and_plot(df, optimal_heating_degree, optimal_cooling_degree):
-    labels, targets = separate_labels_and_targets(df)
+def estimate_and_plot(labels, targets, optimal_heating_degree, optimal_cooling_degree):
     features = labels.values
     heating_targets = targets.iloc[:, 0].values
     cooling_targets = targets.iloc[:, 1].values
@@ -238,25 +241,7 @@ def estimate_and_plot(df, optimal_heating_degree, optimal_cooling_degree):
     cooling_coefficients = fit_polynomial_model(optimal_cooling_degree, features, cooling_targets)
     predicted_cooling_loads = polynomial_model(optimal_cooling_degree, features, cooling_coefficients)
 
-    # Plot estimated vs true loads for heating
-    plt.figure()
-    plt.subplot(1, 2, 1)
-    plt.scatter(heating_targets, predicted_heating_loads)
-    plt.plot([heating_targets.min(), heating_targets.max()], [heating_targets.min(), heating_targets.max()], 'r--')
-    plt.xlabel('True Heating Loads')
-    plt.ylabel('Estimated Heating Loads')
-    plt.title('Heating Loads: True vs Estimated')
-
-    # Plot estimated vs true loads for cooling
-    plt.subplot(1, 2, 2)
-    plt.scatter(cooling_targets, predicted_cooling_loads)
-    plt.plot([cooling_targets.min(), cooling_targets.max()], [cooling_targets.min(), cooling_targets.max()], 'r--')
-    plt.xlabel('True Cooling Loads')
-    plt.ylabel('Estimated Cooling Loads')
-    plt.title('Cooling Loads: True vs Estimated')
-
-    plt.tight_layout()
-    plt.show()
+    plot_estimated_vs_true_loads(heating_targets, predicted_heating_loads, cooling_targets, predicted_cooling_loads)
 
     # Calculate and output the mean absolute difference
     heating_mad = mean_absolute_error(heating_targets, predicted_heating_loads)
@@ -264,6 +249,33 @@ def estimate_and_plot(df, optimal_heating_degree, optimal_cooling_degree):
 
     print(f'Mean Absolute Difference for Heating Loads: {heating_mad}')
     print(f'Mean Absolute Difference for Cooling Loads: {cooling_mad}')
+
+
+def plot_estimated_vs_true_loads(heating_targets, predicted_heating_loads, cooling_targets, predicted_cooling_loads):
+    plt.figure()
+
+    # Plot estimated vs true loads for heating
+    plt.scatter(heating_targets, predicted_heating_loads, color='orange', label='Heating Loads', alpha = 0.5)
+
+    # Plot estimated vs true loads for cooling
+    plt.scatter(cooling_targets, predicted_cooling_loads, color='blue', label='Cooling Loads', alpha = 0.5)
+
+    # Plot the reference lines
+    min_heating = heating_targets.min()
+    max_heating = heating_targets.max()
+    plt.plot([min_heating, max_heating], [min_heating, max_heating], 'orange', linestyle='dotted')
+
+    min_cooling = cooling_targets.min()
+    max_cooling = cooling_targets.max()
+    plt.plot([min_cooling, max_cooling], [min_cooling, max_cooling], 'blue', linestyle='dotted')
+
+    plt.xlabel('True Loads')
+    plt.ylabel('Estimated Loads')
+    plt.title('True vs Estimated Loads')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 ########################################################################################################################
 # Formatting
@@ -302,8 +314,8 @@ def main():
     original_data = pd.read_csv(source_filename + file_extension, header=0)
 
     labels, targets = task1(original_data.copy())
-    optimal_heating_degree, optimal_cooling_degree = task6(labels, targets)
-    task7(original_data.copy(), optimal_heating_degree, optimal_cooling_degree)
+    optimal_heating_degree, optimal_cooling_degree = task6(labels.copy(), targets.copy())
+    task7(labels.copy(), targets.copy(), optimal_heating_degree, optimal_cooling_degree)
 
     print(f'\nTotal Runtime: {time.time() - start_time:.2f}s')
 
